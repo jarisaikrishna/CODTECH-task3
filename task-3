@@ -1,0 +1,60 @@
+import requests
+from bs4 import BeautifulSoup
+
+# Target URL (replace with the actual authorized URL)
+TARGET_URL = "https://example.com"
+
+# Define potential payloads for testing vulnerabilities
+SQL_PAYLOADS = ["' OR 1=1 --", "' UNION SELECT NULL --", "' OR 'a'='a"]
+XSS_PAYLOADS = ["<script>alert('XSS')</script>", "<img src=x onerror=alert(1)>"]
+
+# Helper function to check response for vulnerability indicators
+def is_sql_injection_vulnerable(response_text):
+    sql_error_indicators = [
+        "syntax error", "SQL syntax", "mysql_fetch", "mysql_num_rows",
+        "unterminated", "ODBC", "ORA-", "missing right parenthesis"
+    ]
+    for indicator in sql_error_indicators:
+        if indicator.lower() in response_text.lower():
+            return True
+    return False
+
+# Function to perform SQL Injection Testing
+def test_sql_injection():
+    print("Testing for SQL Injection...")
+    for payload in SQL_PAYLOADS:
+        response = requests.get(f"{TARGET_URL}/?id={payload}")
+        if is_sql_injection_vulnerable(response.text):
+            print(f"Potential SQL Injection vulnerability found with payload: {payload}")
+        else:
+            print(f"No vulnerability found with payload: {payload}")
+
+# Function to perform Cross-Site Scripting (XSS) Testing
+def test_xss():
+    print("Testing for XSS...")
+    for payload in XSS_PAYLOADS:
+        response = requests.get(f"{TARGET_URL}/search?q={payload}")
+        if payload in response.text:
+            print(f"Potential XSS vulnerability found with payload: {payload}")
+        else:
+            print(f"No vulnerability found with payload: {payload}")
+
+# Function to check insecure authentication mechanisms (basic test)
+def test_authentication():
+    print("Testing for weak authentication mechanisms...")
+    # Test for HTTP Basic Authentication
+    response = requests.get(TARGET_URL, auth=('admin', 'admin'))
+    if response.status_code == 200:
+        print("Weak authentication found: 'admin:admin' credentials work")
+    else:
+        print("Basic authentication test did not yield any vulnerabilities")
+
+# Run tests
+def main():
+    print(f"Starting penetration testing on {TARGET_URL}")
+    test_sql_injection()
+    test_xss()
+    test_authentication()
+
+if __name__ == "__main__":
+    main()
